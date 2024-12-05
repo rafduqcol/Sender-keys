@@ -5,20 +5,33 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
 import os
 
+# EJEMPLO SIMPLIFICADO DE SENDER KEYS PARA WHATSAPP
+
+print("----------------------------EJEMPLO PRESENTACIÓN----------------------------------------")
+
+# Estamos usando la libreria cryptography para la implementación de Sender Keys
+
 # Simulación de un grupo con miembros
+
 group_members = ["Hugo", "Javi", "Rafa"]
 
 # Generar las claves del remitente (Sender Key)
+
 def generate_sender_key():
-    # Usar X25519 para claves de intercambio
+    
+    # Usar Claves de curva elíptica X25519 para el intercambio de claves
+    
     private_key = x25519.X25519PrivateKey.generate()
     public_key = private_key.public_key()
+    
     # Usar Ed25519 para firmar mensajes
+    
     signing_private_key = ed25519.Ed25519PrivateKey.generate()
     signing_public_key = signing_private_key.public_key()
     return private_key, public_key, signing_private_key, signing_public_key
 
 # Derivar claves compartidas para cada miembro del grupo
+
 def derive_shared_keys(sender_private_key, member_public_key):
     shared_key = sender_private_key.exchange(member_public_key)
     derived_key = HKDF(
@@ -79,7 +92,7 @@ member_keys = {
 sender_private_key, sender_public_key, signing_private_key, signing_public_key = generate_sender_key()
 
 # Compartir la clave pública del remitente con el grupo
-print("Sender Public Key:", sender_public_key.public_bytes(
+print("\nSender Public Key:", sender_public_key.public_bytes(
     serialization.Encoding.PEM,
     serialization.PublicFormat.SubjectPublicKeyInfo
 ).decode())
@@ -91,7 +104,8 @@ shared_keys = {
 }
 
 # Simulación: Javi envía un mensaje a Rafa y Hugo
-message = "Ejemplo de Sender-keys, enviado por javi al grupo"
+
+message = "Esto es un mensaje de prueba para la presentacion de Criptografia, enviado por Javi"
 
 # Firmar el mensaje con Ed25519 (Javi firma el mensaje)
 signature = sign_message(signing_private_key, message)
@@ -107,12 +121,14 @@ for member, encrypted in encrypted_messages.items():
     print(f"{member}: {encrypted}")
 
 # Descifrar y verificar los mensajes (Rafa y Hugo)
-print("--------------------------------------------------------------------------------------------------------------------")
 print("\nMensajes descifrados y verificados: \n")
 for member, encrypted in encrypted_messages.items():
     decrypted_message = decrypt_message(shared_keys[member], encrypted)
 
     # Verificar la firma
     is_valid = verify_signature(signing_public_key, decrypted_message, signature)
-    status = "válido" if is_valid else "inválido"
+    status = "válida" if is_valid else "inválido"
     print(f"{member}: {decrypted_message} (Firma: {status})")
+    
+    
+print("----------------------------FIN DEL EJEMPLO----------------------------------------")
