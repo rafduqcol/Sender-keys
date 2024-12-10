@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados Criptográficos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        h2 {
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        ul li {
+            margin: 10px 0;
+            padding: 8px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+        }
+
+        strong {
+            color: #3498db;
+        }
+
+        a {
+            display: inline-block;
+            text-align: center;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        a:hover {
+            background-color: #2980b9;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background-color: #ecf0f1;
+            margin: 30px 0;
+        }
+
+        /* Nueva clase para estilizar el mensaje de Javi */
+        .message-container {
+            background-color: #ecf0f1;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #2c3e50;
+        }
+
+        .message-text {
+            font-weight: bold;
+            font-size: 1.5em;
+            color: #2c3e50; /* Color para el mensaje */
+        }
+
+        .result-container {
+            margin-top: 20px;
+        }
+
+        .result-container ul {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados Criptográficos</title>
+    <style>
+        /* Tu estilo aquí */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Resultados de la verificación</h1>
+    
+        <div class="result-container">
+            <ul>
+                <li><strong>Mensaje enviado por javi:</strong> {{ message }}</li>
+                <li><strong>Chain key de javi (CK):</strong> {{ javi_ck }}</li>
+                <li><strong>Clave privada de firma de javi (SSK):</strong> {{ javi_ssk }}</li>
+            </ul>
+            <ul>
+                <li><strong>Mensaje cifrado por javi:</strong> {{ javi_encrypted_message }}</li>
+                <li><strong>Mensaje firmado por javi:</strong> {{ javi_signed_message }}</li>
+            </ul>
+        </div>
+
+        {% for result in results %}
+            <div class="result-container">
+                <h2>{{ result.member }}</h2>
+            
+                <ul>
+                    <h4>Datos del miembro</h4>
+                    <li><strong>Clave Pública de Cifrado de {{result.member}} (CK):</strong> {{ result.ck }}</li>
+                    <li><strong>Clave Pública de Firma de {{result.member}} (SPK):</strong> {{ result.spk }}</li>
+                    <li style="color: #e67e22; font-weight: bold;">* Nota: Estas claves no se utilizan para descifrar el mensaje. 
+                        Son solo para proporcionar información sobre el miembro.</li>
+
+                    <h4>Datos recibidos</h4>
+                    <li><strong>Mensaje Cifrado (Hexadecimal):</strong> {{ javi_encrypted_message }}</li>
+                    <li><strong>Mensaje Descifrado:</strong> {{ javi_decrypted_message }}</li>
+                    
+                    <h4>Comprobación de la firma</h4>
+                    <li><strong>Firma recibida:</strong> {{ result.signature }}</li>
+                    <li><strong>Spk de javi para comprobar la veracidad del mensaje</strong> {{ javi_spk }}</li>
+                    <li><strong>Estado de la firma:</strong> {{ result.signature_status }}</li>
+
+                    <h4>Descifrado del mensaje</h4>
+                    <li><strong>Mensaje Cifrado (Hexadecimal):</strong> {{ javi_encrypted_message }}</li>
+                    <li><strong>CK de javi para descifrar el mensaje:</strong> {{ javi_ck }}</li>
+                    <li><strong>Mensaje Descifrado:</strong> {{ javi_decrypted_message }}</li>
+                </ul>
+                <hr>
+            </div>
+        {% endfor %}
+
+        <a href="{% url 'cryptography_view' %}">Volver</a>
+    </div>
+</body>
+</html>
