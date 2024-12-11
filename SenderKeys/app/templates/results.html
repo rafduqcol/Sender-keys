@@ -109,17 +109,37 @@
 </head>
 <body>
     <div class="container">
-        <h1>Resultados de la verificación</h1>
+        <h1>Resultados de la verificación del protocolo Sender-keys</h1>
+        <ul><li style="color: #e67e22; font-weight: bold;">* Nota: Todas las claves y mensajes que aparecen están truncados para mostrar
+            los 20 primeros caracteres y los 20 últimos caracteres.</li>    
+        </ul>
+   
     
         <div class="result-container">
             <ul>
-                <li><strong>Mensaje enviado por javi:</strong> {{ message }}</li>
+                <li><strong>Mensaje enviado por javi, ya cifrado (c):</strong> {{ message }}</li>
                 <li><strong>Chain key de javi (CK):</strong> {{ javi_ck }}</li>
+                <li><strong>Clave de mensaje de javi, derivado de ck (MK):</strong> {{javi_mk}} </li>
                 <li><strong>Clave privada de firma de javi (SSK):</strong> {{ javi_ssk }}</li>
             </ul>
             <ul>
-                <li><strong>Mensaje cifrado por javi:</strong> {{ javi_encrypted_message }}</li>
-                <li><strong>Mensaje firmado por javi:</strong> {{ javi_signed_message }}</li>
+                <li><strong>Mensaje cifrado por javi (c) :</strong> {{ javi_encrypted_message }}</li>
+                <li><strong>Mensaje firmado por javi (σ):</strong> {{ javi_signed_message }}</li>
+            </ul>
+        </div>
+
+        
+    
+        <div class="result-container">
+            <h2> Cada miembro del grupo tiene de javi los siguientes datos </h2>
+
+            <ul>
+                <li><strong>Chain key de javi, se usará para calcular el mk (CK):</strong> {{ javi_ck }}</li>
+                <li><strong>Clave pública de firma de javi (SPK):</strong> {{ javi_spk }}</li>
+            </ul>
+            <ul>
+                <li><strong>Mensaje cifrado por javi (c):</strong> {{ javi_encrypted_message }}</li>
+                <li><strong>Mensaje firmado por javi (σ):</strong> {{ javi_signed_message }}</li>
             </ul>
         </div>
 
@@ -132,21 +152,18 @@
                     <li><strong>Clave Pública de Cifrado de {{result.member}} (CK):</strong> {{ result.ck }}</li>
                     <li><strong>Clave Pública de Firma de {{result.member}} (SPK):</strong> {{ result.spk }}</li>
                     <li style="color: #e67e22; font-weight: bold;">* Nota: Estas claves no se utilizan para descifrar el mensaje. 
-                        Son solo para proporcionar información sobre el miembro.</li>
-
-                    <h4>Datos recibidos</h4>
-                    <li><strong>Mensaje Cifrado (Hexadecimal):</strong> {{ javi_encrypted_message }}</li>
-                    <li><strong>Mensaje Descifrado:</strong> {{ javi_decrypted_message }}</li>
+                        Son solo para proporcionar información sobre el miembro, cada miembro concoce el SPK y el CK de javi (SK)</li>
                     
                     <h4>Comprobación de la firma</h4>
-                    <li><strong>Firma recibida:</strong> {{ result.signature }}</li>
+                    <li><strong>Mensaje firmado por javi (σ):</strong> {{ javi_signed_message }}</li>
                     <li><strong>Spk de javi para comprobar la veracidad del mensaje</strong> {{ javi_spk }}</li>
                     <li><strong>Estado de la firma:</strong> {{ result.signature_status }}</li>
 
                     <h4>Descifrado del mensaje</h4>
-                    <li><strong>Mensaje Cifrado (Hexadecimal):</strong> {{ javi_encrypted_message }}</li>
-                    <li><strong>CK de javi para descifrar el mensaje:</strong> {{ javi_ck }}</li>
-                    <li><strong>Mensaje Descifrado:</strong> {{ javi_decrypted_message }}</li>
+                    <li><strong>Mensaje Cifrado (c):</strong> {{ javi_signed_message }}</li>
+                    <li><strong>Chain key de javi para calcular el mk del mensaje (CK):</strong> {{ javi_ck }}</li>
+                    <li><strong>Clave de mensaje de javi, derivado de ck (MK):</strong> {{ result.mk_derived_by_member }} </li>
+                    <li><strong>Mensaje Descifrado:</strong> {{ result.decrypted_message_by_member }}</li>
                 </ul>
                 <hr>
             </div>

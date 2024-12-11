@@ -4,8 +4,9 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives import serialization
+from app.sender_keys import generate_sender_keys, derive_message_key, sign_message, verify_signature, encrypt_message, decrypt_message
+
 import os
-from app.sender_keys import generate_sender_keys, sign_message, verify_signature, encrypt_message, decrypt_message
 
 def clean_key(key):
     # Eliminar las partes BEGIN y END
@@ -13,7 +14,16 @@ def clean_key(key):
     key_cleaned = clean.replace('-----BEGIN PUBLIC KEY-----', '').replace('-----END PUBLIC KEY-----', '')
     return key_cleaned.strip()
 
-from cryptography.hazmat.primitives import serialization
+def truncate_key_hex(key_bytes):
+    # Truncar el contenido de la clave para mostrar solo los primeros y últimos 20 caracteres
+    hex_key = key_bytes.hex()
+    return hex_key[:20] + '...' + hex_key[-20:]
+
+
+def truncate_message(message, max_length=40):
+    if len(message) > max_length:
+        return message[:20] + '...' + message[-20:]
+    return message
 
 def cryptography_view(request):
     if request.method == 'POST':
@@ -29,72 +39,69 @@ def cryptography_view(request):
                 for member in group_members
             }
 
-            # Javi firma y cifra el mensaje
+            # Javi firma el mensaje y cifra utilizando MK derivada de CK
             javi_ck, javi_ssk, javi_spk = group_keys["Javi"]
+            javi_mk = derive_message_key(javi_ck)  # Derivar clave maestra (MK) de CK
             signature = sign_message(javi_ssk, message)
-            encrypted_message = encrypt_message(javi_ck, message)
+            encrypted_message = encrypt_message(javi_mk, message)
 
             # Descifrar el mensaje cifrado por Javi
-            decrypted_message_by_javi = decrypt_message(javi_ck, encrypted_message)
+            decrypted_message_by_javi = decrypt_message(javi_mk, encrypted_message)
 
             results = []
 
             # Cada miembro del grupo descifra y verifica el mensaje
             for member, (ck, ssk, spk) in group_keys.items():
                 if member != "Javi":
-                    decrypted_message = decrypt_message(javi_ck, encrypted_message)
+                    # Derivar MK de CK del miembro (aunque no se use aquí, es buena práctica para consistencia)
+                    mk_derived_from_member = derive_message_key(javi_ck)
+                    decrypted_message = decrypt_message(mk_derived_from_member, encrypted_message)
                     is_valid = verify_signature(javi_spk, decrypted_message, signature)
-                    status = "válida" if is_valid else "inválida"
-                    ssk = ssk.private_bytes(
+                    status = "Válida" if is_valid else "Inválida"
+
+                    # Formatear claves para mostrar
+                    ssk_bytes = ssk.private_bytes(
                         encoding=serialization.Encoding.PEM, 
                         format=serialization.PrivateFormat.PKCS8,
                         encryption_algorithm=serialization.NoEncryption()
                     )
-
-                    # Si spk es bytes, cargar la clave pública desde PEM
-                    if isinstance(spk, bytes):
-                        spk = serialization.load_pem_public_key(spk)
-
-                    # Obtener la clave pública de firma de Javi como bytes y convertir a hexadecimal
                     spk_bytes = spk.public_bytes(
                         encoding=serialization.Encoding.PEM,
                         format=serialization.PublicFormat.SubjectPublicKeyInfo
                     )
-                    spk_hex = spk_bytes.hex()
-                    spk_hex_preview = spk_hex[:20] + '...' + spk_hex[-20:]
 
                     # Crear un diccionario con los resultados de cada miembro
                     results.append({
-                        'member': member,
-                        'message': decrypted_message,
-                        'signature': signature.hex(),  # Puedes convertir la firma a un formato legible (hex)
+                        'member': truncate_message(member),
                         'signature_status': status,
-                        'ck': ck.hex(),
-                        'ssk': clean_key(ssk.decode()),
-                        'spk': spk_hex_preview  # Pasamos la clave pública de Javi (spk) como hex
+                        'ck': truncate_key_hex(ck),
+                        'ssk': truncate_key_hex(ssk_bytes),
+                        'spk': truncate_key_hex(spk_bytes),
+                        'mk_derived_by_member': truncate_key_hex(mk_derived_from_member),
+                        'decrypted_message_by_member': truncate_message(decrypted_message),
                     })
 
-            # Incluir la clave de Javi (ck) y el ssk de Javi en los resultados
-            javi_ck_hex = javi_ck.hex()  # Convertir la clave a hexadecimal para mostrarla
-            javi_ssk_hex = clean_key(ssk.decode())  # Limpiar y convertir la ssk de Javi
-            javi_spk_hex = spk.public_bytes(
+            # Formatear las claves de Javi para la vista
+            javi_ssk = javi_ssk.private_bytes(
+                encoding=serialization.Encoding.PEM, 
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            javi_spk = javi_spk.public_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo
-            ).hex()  # Convertir la clave pública de Javi a hexadecimal
-            javi_spk_hex_preview = javi_spk_hex[:20] + '...' + javi_spk_hex[-20:]
+            )
 
-
-            # Pasar los resultados, la clave de Javi (ck), la clave privada de firma de Javi (ssk), 
-            # el mensaje cifrado y el mensaje descifrado a la plantilla
+            # Pasar los resultados y datos a la plantilla
             return render(request, 'results.html', {
-                'results': results, 
-                'message': message,
-                'javi_ck': javi_ck_hex,  # Pasamos la clave de cifrado de Javi a la plantilla
-                'javi_ssk': javi_ssk_hex,  # Pasamos la clave privada de firma de Javi (ssk) a la plantilla
-                'javi_spk': javi_spk_hex_preview,  # Pasamos la clave pública de firma de Javi (spk) a la plantilla
-                'javi_encrypted_message': encrypted_message.hex(),  # Pasamos el mensaje cifrado
-                'javi_signed_message': signature.hex(),  # Pasamos el mensaje firmado
-                'javi_decrypted_message': decrypted_message_by_javi  # Pasamos el mensaje descifrado por Javi
+                'results': results,
+                'message': truncate_message(message),
+                'javi_ck': truncate_key_hex(javi_ck),
+                'javi_mk': truncate_key_hex(javi_mk),
+                'javi_ssk': truncate_key_hex(javi_ssk),
+                'javi_spk': truncate_key_hex(javi_spk),
+                'javi_encrypted_message': truncate_key_hex(encrypted_message),
+                'javi_signed_message': truncate_key_hex(signature),
             })
 
     # Si es una solicitud GET (mostrando el formulario)
