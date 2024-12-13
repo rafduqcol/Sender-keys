@@ -1,0 +1,4 @@
+
+cryptography==36.0.0
+
+Django==4.2.16
