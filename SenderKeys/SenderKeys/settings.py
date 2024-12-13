@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CSRF_TRUSTED_ORIGINS = ['https://sender-keys.onrender.com/']
+CSRF_TRUSTED_ORIGINS = ['https://sender-keys.onrender.com']
 ROOT_URLCONF = 'SenderKeys.urls'
 
 TEMPLATES = [
