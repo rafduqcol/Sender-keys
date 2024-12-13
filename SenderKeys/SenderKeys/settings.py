@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-59y6g+x!km6n-=qll%^+=igri)wa**fiju@dmegarfvw&k1q^p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['sender-keys.onrender.com']
 
 
 # Application definition
@@ -51,6 +51,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CSRF_TRUSTED_ORIGINS = ['https://sender-keys.onrender.com/']
 ROOT_URLCONF = 'SenderKeys.urls'
 
 TEMPLATES = [
