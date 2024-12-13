@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 
 cryptography==36.0.0
 
 Django==4.2.16
+=======
+pyopenssl
+cryptography
+secrets
+>>>>>>> 3b111cef238c39a4099320c30cdd7fd9e1685f7f
