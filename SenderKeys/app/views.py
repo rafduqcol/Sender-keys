@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives import serialization
-from app.sender_keys import generate_sender_keys, derive_message_key, sign_message, verify_signature, encrypt_message, decrypt_message
+from app.sender_keys import derive_keys, derive_signature_key, generate_sender_keys, sign_message, verify_signature, encrypt_message, decrypt_message
 
 import os
 
@@ -15,15 +15,25 @@ def clean_key(key):
     return key_cleaned.strip()
 
 def truncate_key_hex(key_bytes):
-    # Truncar el contenido de la clave para mostrar solo los primeros y últimos 20 caracteres
-    hex_key = key_bytes.hex()
+    # Verificar si key_bytes es de tipo bytes
+    if isinstance(key_bytes, bytes):
+        hex_key = key_bytes.hex()  # Solo llamar a hex() si es un objeto bytes
+    else:
+        hex_key = key_bytes  # Si es una cadena, usarla directamente
     return hex_key[:20] + '...' + hex_key[-20:]
+
+
+def view_information(request):
+    
+    return render(request,'information.html')
 
 
 def truncate_message(message, max_length=40):
     if len(message) > max_length:
         return message[:20] + '...' + message[-20:]
     return message
+
+from cryptography.hazmat.primitives import serialization
 
 def cryptography_view(request):
     if request.method == 'POST':
@@ -41,7 +51,7 @@ def cryptography_view(request):
 
             # Javi firma el mensaje y cifra utilizando MK derivada de CK
             javi_ck, javi_ssk, javi_spk = group_keys["Javi"]
-            javi_mk = derive_message_key(javi_ck)  # Derivar clave maestra (MK) de CK
+            javi_mk = derive_keys(javi_ck)  # Derivar clave maestra (MK) de CK
             signature = sign_message(javi_ssk, message)
             encrypted_message = encrypt_message(javi_mk, message)
 
@@ -54,12 +64,12 @@ def cryptography_view(request):
             for member, (ck, ssk, spk) in group_keys.items():
                 if member != "Javi":
                     # Derivar MK de CK del miembro (aunque no se use aquí, es buena práctica para consistencia)
-                    mk_derived_from_member = derive_message_key(javi_ck)
+                    mk_derived_from_member = derive_keys(javi_ck)
                     decrypted_message = decrypt_message(mk_derived_from_member, encrypted_message)
                     is_valid = verify_signature(javi_spk, decrypted_message, signature)
                     status = "Válida" if is_valid else "Inválida"
 
-                    # Formatear claves para mostrar
+                    # Convertir claves a bytes (private_bytes y public_bytes)
                     ssk_bytes = ssk.private_bytes(
                         encoding=serialization.Encoding.PEM, 
                         format=serialization.PrivateFormat.PKCS8,
@@ -80,28 +90,55 @@ def cryptography_view(request):
                         'mk_derived_by_member': truncate_key_hex(mk_derived_from_member),
                         'decrypted_message_by_member': truncate_message(decrypted_message),
                     })
-
-            # Formatear las claves de Javi para la vista
-            javi_ssk = javi_ssk.private_bytes(
+                    
+            # Aquí convertimos javi_ssk a bytes
+            javi_ssk_bytes = javi_ssk.private_bytes(
                 encoding=serialization.Encoding.PEM, 
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
             )
+    
+            # Formatear las claves de Javi para la vista
             javi_spk = javi_spk.public_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
+            javi_next_ck = derive_keys(javi_ck)
+            
+            javi_next_ssk, javi_next_spk = derive_signature_key(javi_ssk_bytes)  # Ahora pasamos los bytes
 
+            javi_next_ssk_bytes = javi_next_ssk.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            
+            javi_next_spk_bytes = javi_next_spk.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,  # Usa SubjectPublicKeyInfo para claves públicas
+            )
+
+                   
+                
+            javi_next_ssk_hex = javi_next_ssk_bytes.hex()
+            javi_next_spk_hex = javi_next_spk_bytes.hex()
+
+            
             # Pasar los resultados y datos a la plantilla
             return render(request, 'results.html', {
                 'results': results,
                 'message': truncate_message(message),
                 'javi_ck': truncate_key_hex(javi_ck),
                 'javi_mk': truncate_key_hex(javi_mk),
-                'javi_ssk': truncate_key_hex(javi_ssk),
-                'javi_spk': truncate_key_hex(javi_spk),
+                'javi_ssk': (javi_ssk_bytes.hex()),  # Usar la versión en bytes de javi_ssk
+                'javi_spk': (javi_spk.hex()),
+                'javi_ssk_truncated': truncate_key_hex(javi_ssk_bytes),
+                'javi_spk_truncated': truncate_key_hex(javi_spk),
                 'javi_encrypted_message': truncate_key_hex(encrypted_message),
                 'javi_signed_message': truncate_key_hex(signature),
+                'javi_next_ck': truncate_key_hex(javi_next_ck),
+                'javi_next_ssk': (javi_next_ssk_hex),
+                'javi_next_spk': (javi_next_spk_hex),
             })
 
     # Si es una solicitud GET (mostrando el formulario)

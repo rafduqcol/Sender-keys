@@ -5,32 +5,64 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives import serialization
 import os
-
-# EJEMPLO MODIFICADO: TODOS LOS MIEMBROS COMPARTEN SUS SK
+import secrets
 
 
 # Leyenda de las variables usada:
-# CK: Clave de Cifrado(Chain Key)
-# SSK: Clave de Firma(Signing Secret Key)
-# SPK: Clave Pública de Firma(Signing Public Key)
+# CK: Clave de Cifrado (Chain Key)
+# MK: Clave Maestra (Master Key)
+# SSK: Clave de Firma (Signing Secret Key)
+# SPK: Clave Pública de Firma (Signing Public Key)
 # Signature: Firma 
-
-
-print("----------------------------EJEMPLO MODIFICADO----------------------------------------")
 
 # Simulación de un grupo con miembros
 group_members = ["Hugo", "Javi", "Rafa"]
 
-# Generar Sender Keys (CK, SSK, SPK) para cada miembro
+# Generar Sender Keys (CK, SPK) y SSK para cada miembro
 def generate_sender_keys():
     # Crear clave de firma privada (SSK) y pública (SPK)
     ssk = ed25519.Ed25519PrivateKey.generate()
     spk = ssk.public_key()
     
-    # Crear clave de cifrado simétrica (CK)
-    ck = os.urandom(32)  # Generar clave aleatoria de 256 bits (32 bytes)
-    
+    # IMPLEMENTA UNA DE LAS SOLUCIONES PROPUESTAS
+    # Crear la chain key (CK) utilizando una fuente de entropía criptográficamente segura
+    ck = secrets.token_bytes(32)
     return ck, ssk, spk
+
+# Se usa para calcular el message ley para cifrar y el próximo ck (HMAC-SHA256)
+def derive_keys(key):
+    hkdf = HKDF(
+        algorithm=hashes.SHA256(),
+        length=32,  # Longitud de la clave derivada (256 bits / 32 bytes)
+        salt=None,  
+        info=b"group-encryption-key"  # Información contextual
+    )
+    derived_key = hkdf.derive(key)
+    return derived_key
+
+# IMPLEMENTA UNA DE LAS SOLUCIONES PROPUESTAS
+# Función para aplicar ratcheting a la clave de firma
+def derive_signature_key(current_ssk):
+    # Verifica que current_ssk sea un objeto de tipo bytes
+    if not isinstance(current_ssk, bytes):
+        raise TypeError("current_ssk debe ser un objeto de tipo bytes.")
+    
+    # Derivar nueva clave usando HKDF
+    hkdf = HKDF(
+        algorithm=hashes.SHA256(),
+        length=32, 
+        salt=None,  
+        info=b"signature-ratcheting"  
+    )
+    new_ssk_bytes = hkdf.derive(current_ssk)
+    
+    # Generar una nueva clave privada a partir de los bytes derivados
+    next_ssk = ed25519.Ed25519PrivateKey.from_private_bytes(new_ssk_bytes)
+    
+    # Obtener la clave pública a partir de la clave privada
+    next_spk = next_ssk.public_key()
+    
+    return next_ssk, next_spk
 
 # Función para firmar un mensaje
 def sign_message(private_key, message):
@@ -46,9 +78,9 @@ def verify_signature(public_key, message, signature):
         return False
 
 # Función para cifrar un mensaje
-def encrypt_message(ck, message):
+def encrypt_message(mk, message):
     iv = os.urandom(16)  # Vector de inicialización aleatorio
-    cipher = Cipher(algorithms.AES(ck), modes.CBC(iv))
+    cipher = Cipher(algorithms.AES(mk), modes.CBC(iv))
     encryptor = cipher.encryptor()
 
     # Aplicar padding para que el mensaje sea múltiplo del tamaño del bloque
@@ -60,10 +92,10 @@ def encrypt_message(ck, message):
     return iv + ciphertext
 
 # Función para descifrar un mensaje
-def decrypt_message(ck, encrypted_message):
+def decrypt_message(mk, encrypted_message):
     iv = encrypted_message[:16]  # Extraer el IV
     ciphertext = encrypted_message[16:]  # Extraer el texto cifrado
-    cipher = Cipher(algorithms.AES(ck), modes.CBC(iv))
+    cipher = Cipher(algorithms.AES(mk), modes.CBC(iv))
     decryptor = cipher.decryptor()
 
     # Descifrar y eliminar el padding
@@ -72,40 +104,24 @@ def decrypt_message(ck, encrypted_message):
     message = unpadder.update(padded_message) + unpadder.finalize()
     return message.decode()
 
-# Generar y compartir SK para cada miembro
-group_keys = {
-    member: generate_sender_keys()
-    for member in group_members
-}
+# Ejemplo de uso
+print("----------------------------EJEMPLO MODIFICADO----------------------------------------")
 
-print("\nSender Keys generados y compartidos:\n")
-for member, (ck, ssk, spk) in group_keys.items():
-    print(f"Miembro: {member}")
-    print(f"  CK: {ck.hex()}")
-    print(f"  SSK (clave privada de firma): {ssk.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption()).decode()}")
-    print(f"  SPK (clave pública de firma): {spk.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo).decode()}")
+# Generar claves para Javi
+ck, ssk, spk = generate_sender_keys()
+print(f"Clave de cifrado (CK) de Javi: {ck.hex()}")
 
-# Solicitar mensaje de entrada del usuario
-message = input("\nEscribe un mensaje que enviará Javi al grupo: ")
-print("\nMensaje enviado por Javi:", message)
+# Derivar clave maestra (MK)
+mk = derive_keys(ck)
+print(f"Clave maestra (MK) derivada: {mk.hex()}")
 
-# Javi firma y cifra el mensaje
-javi_ck, javi_ssk, javi_spk = group_keys["Javi"]
-signature = sign_message(javi_ssk, message)
-encrypted_message = encrypt_message(javi_ck, message)
+# Mensaje a cifrar
+mensaje = "Este es un mensaje secreto."
 
-# Cada miembro del grupo descifra y verifica el mensaje
-print("\nMensajes descifrados y verificados por los miembros del grupo:\n")
-for member, (ck, ssk, spk) in group_keys.items():
-    if member != "Javi":
-        decrypted_message = decrypt_message(javi_ck, encrypted_message)
-        
-        # Verificar la firma con la SPK de Javi
-        is_valid = verify_signature(javi_spk, decrypted_message, signature)
-        status = "válida" if is_valid else "inválida"
-        
-        print(f"Miembro: {member}")
-        print(f"  Mensaje: {decrypted_message}")
-        print(f"  Firma: {status}\n")
+# Cifrar mensaje
+encrypted_message = encrypt_message(mk, mensaje)
+print(f"Mensaje cifrado: {encrypted_message.hex()}")
 
-print("----------------------------FIN DEL EJEMPLO----------------------------------------")
+# Descifrar mensaje
+decrypted_message = decrypt_message(mk, encrypted_message)
+print(f"Mensaje descifrado: {decrypted_message}")

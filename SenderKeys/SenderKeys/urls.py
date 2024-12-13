@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from app.views import cryptography_view
+from app.views import view_information
 
 app_name = 'app'  # Este es el namespace
 
@@ -24,6 +25,7 @@ app_name = 'app'  # Este es el namespace
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', cryptography_view, name='cryptography_view'),
+    path('information', view_information, name='information')
     
 
 ]

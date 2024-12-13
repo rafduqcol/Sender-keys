@@ -69,62 +69,86 @@
             margin: 30px 0;
         }
 
-        /* Nueva clase para estilizar el mensaje de Javi */
-        .message-container {
-            background-color: #ecf0f1;
+        .legend {
+            background-color: #e3f2fd;
             padding: 20px;
-            margin: 20px 0;
+            margin-bottom: 20px;
             border-radius: 8px;
-            text-align: center;
-            font-size: 1.2em;
+            font-size: 1.0em;
+        }
+
+        .legend ul {
+            padding: 0;
+        }
+
+        .legend ul li {
+            margin: 5px 0;
             color: #2c3e50;
         }
-
-        .message-text {
-            font-weight: bold;
-            font-size: 1.5em;
-            color: #2c3e50; /* Color para el mensaje */
-        }
-
-        .result-container {
-            margin-top: 20px;
-        }
-
-        .result-container ul {
-            background-color: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-        }
-    </style>
-</head>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Resultados Criptográficos</title>
-    <style>
-        /* Tu estilo aquí */
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Resultados de la verificación del protocolo Sender-keys</h1>
+
+        <div class="legend">
+            <h2>Leyenda de abreviaturas</h2>
+            <ul>
+                <li><strong>CK:</strong> Chain Key, clave utilizada para derivar claves de mensaje (MK).</li>
+                <li><strong>MK:</strong> Message Key, clave utilizada para cifrar un mensaje.</li>
+                <li><strong>SSK:</strong> Sender Signing Key, clave privada de firma del remitente.</li>
+                <li><strong>SPK:</strong> Sender Public Key, clave pública de firma del remitente.</li>
+                <li><strong>σ:</strong> Firma del mensaje (signature).</li>
+                <li><strong>m:</strong> Mensaje .</li>
+                <li><strong>c:</strong> Mensaje cifrado.</li>
+            </ul>
+        </div>
+
+        <ul>
+            <h2>Solución propuesta:</h2>
+            <li><strong>Generar el ck con aleatoriedad fuerte y no sean predecibles:</strong> {{ javi_ck }} </li>
+
+            <li><strong>SSK original de Javi:</strong> 
+                <span style="word-wrap: break-word; white-space: normal;">{{ javi_ssk }}</span>
+            </li>  
+
+            <li><strong>SSK de Javi una vez aplicado el Ratcheting:</strong> 
+                <span style="word-wrap: break-word; white-space: normal;">{{ javi_next_ssk }}</span>
+            </li>  
+            
+            
+
+            <li><strong>SPK de Javi una vez aplicado el Ratcheting:</strong> 
+                <span style="word-wrap: break-word; white-space: normal;">{{ javi_next_spk }}</span>
+            </li>           
+        </ul>
+        
+            
+
+
+
         <ul><li style="color: #e67e22; font-weight: bold;">* Nota: Todas las claves y mensajes que aparecen están truncados para mostrar
-            los 20 primeros caracteres y los 20 últimos caracteres.</li>    
+            los 20 primeros caracteres y los 20 últimos caracteres, los SPK y SSK que no están truncados es para ver las difrencia que hay entre ellos.</li>    
         </ul>
    
     
         <div class="result-container">
             <ul>
-                <li><strong>Mensaje enviado por javi, ya cifrado (c):</strong> {{ message }}</li>
+                <h2>Datos de javi usados para cifrar el mensaje (m)</h2>
+                <li><strong>Mensaje enviado por javi sin cifrar (m):</strong> {{ message }}</li>
                 <li><strong>Chain key de javi (CK):</strong> {{ javi_ck }}</li>
                 <li><strong>Clave de mensaje de javi, derivado de ck (MK):</strong> {{javi_mk}} </li>
-                <li><strong>Clave privada de firma de javi (SSK):</strong> {{ javi_ssk }}</li>
+
+                <li><strong>Clave privada de firma de javi (SSK):</strong> 
+                    <span style="word-wrap: break-word; white-space: normal;">{{ javi_next_ssk }}</span>
+                </li>  
+                
+
             </ul>
             <ul>
                 <li><strong>Mensaje cifrado por javi (c) :</strong> {{ javi_encrypted_message }}</li>
                 <li><strong>Mensaje firmado por javi (σ):</strong> {{ javi_signed_message }}</li>
+                <li><strong>Ck de javi actualizada para próximos mensajes: </strong> {{ javi_next_ck }}</li>
             </ul>
         </div>
 
@@ -135,8 +159,9 @@
 
             <ul>
                 <li><strong>Chain key de javi, se usará para calcular el mk (CK):</strong> {{ javi_ck }}</li>
-                <li><strong>Clave pública de firma de javi (SPK):</strong> {{ javi_spk }}</li>
-            </ul>
+                <li><strong>Clave pública de firma de javi (SPK): </strong> 
+                    <span style="word-wrap: break-word; white-space: normal;">{{ javi_next_spk }}</span>
+                </li>              </ul>
             <ul>
                 <li><strong>Mensaje cifrado por javi (c):</strong> {{ javi_encrypted_message }}</li>
                 <li><strong>Mensaje firmado por javi (σ):</strong> {{ javi_signed_message }}</li>
@@ -156,7 +181,7 @@
                     
                     <h4>Comprobación de la firma</h4>
                     <li><strong>Mensaje firmado por javi (σ):</strong> {{ javi_signed_message }}</li>
-                    <li><strong>Spk de javi para comprobar la veracidad del mensaje</strong> {{ javi_spk }}</li>
+                    <li><strong>Spk de javi para comprobar la veracidad del mensaje</strong> {{ javi_spk_truncated }}</li>
                     <li><strong>Estado de la firma:</strong> {{ result.signature_status }}</li>
 
                     <h4>Descifrado del mensaje</h4>

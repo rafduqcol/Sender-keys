@@ -1,3 +1,5 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -58,6 +60,25 @@
         button:hover {
             background-color: #2980b9;
         }
+
+        .image-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .button-container {
+            margin-top: 20px;
+        }
+
+        .button-container button {
+            margin-bottom: 10px; /* Agregar espacio entre los botones */
+        }
     </style>
 </head>
 <body>
@@ -66,9 +87,19 @@
         <form method="POST">
             {% csrf_token %}
             <label for="message">Escribe tu mensaje:</label><br>
-            <textarea name="message" id="message" rows="4" cols="50" required></textarea><br><br>
+            <textarea name="message" id="message" maxlength="50" required></textarea><br><br>
             <button type="submit">Enviar mensaje</button>
         </form>
+        
+        <div class="button-container">
+            <a href="/information">
+                <button>Información sobre el código</button>
+            </a>
+        </div>
+
+        <div class="image-container">
+            <img src="{% static '/SenderKeys.png' %}" alt="SenderKeys">
+        </div>
     </div>
 </body>
 </html>

@@ -5,6 +5,8 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives import serialization
 import os
+import secrets
+
 
 # Leyenda de las variables usada:
 # CK: Clave de Cifrado (Chain Key)
@@ -16,27 +18,51 @@ import os
 # Simulación de un grupo con miembros
 group_members = ["Hugo", "Javi", "Rafa"]
 
-# Generar Sender Keys (CK, SSK, SPK) para cada miembro
+# Generar Sender Keys (CK, SPK) y SSK para cada miembro
 def generate_sender_keys():
     # Crear clave de firma privada (SSK) y pública (SPK)
     ssk = ed25519.Ed25519PrivateKey.generate()
     spk = ssk.public_key()
     
-    # Crear clave de cifrado simétrica (CK)
-    ck = os.urandom(32)  # Generar clave aleatoria de 256 bits (32 bytes)
-    
+    # IMPLEMENTA UNA DE LAS SOLUCIONES PROPUESTAS
+    # Crear la chain key (CK) utilizando una fuente de entropía criptográficamente segura
+    ck = secrets.token_bytes(32)
     return ck, ssk, spk
 
-# Derivar MK a partir de CK usando HKDF (HMAC-SHA256)
-def derive_message_key(ck):
+# Se usa para calcular el message ley para cifrar y el próximo ck (HMAC-SHA256)
+def derive_keys(key):
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
         length=32,  # Longitud de la clave derivada (256 bits / 32 bytes)
-        salt=None,  # Puede usar un salt aleatorio para mayor seguridad
+        salt=None,  
         info=b"group-encryption-key"  # Información contextual
     )
-    mk = hkdf.derive(ck)
-    return mk
+    derived_key = hkdf.derive(key)
+    return derived_key
+
+# IMPLEMENTA UNA DE LAS SOLUCIONES PROPUESTAS
+# Función para aplicar ratcheting a la clave de firma
+def derive_signature_key(current_ssk):
+    # Verifica que current_ssk sea un objeto de tipo bytes
+    if not isinstance(current_ssk, bytes):
+        raise TypeError("current_ssk debe ser un objeto de tipo bytes.")
+    
+    # Derivar nueva clave usando HKDF
+    hkdf = HKDF(
+        algorithm=hashes.SHA256(),
+        length=32, 
+        salt=None,  
+        info=b"signature-ratcheting"  
+    )
+    new_ssk_bytes = hkdf.derive(current_ssk)
+    
+    # Generar una nueva clave privada a partir de los bytes derivados
+    next_ssk = ed25519.Ed25519PrivateKey.from_private_bytes(new_ssk_bytes)
+    
+    # Obtener la clave pública a partir de la clave privada
+    next_spk = next_ssk.public_key()
+    
+    return next_ssk, next_spk
 
 # Función para firmar un mensaje
 def sign_message(private_key, message):
@@ -86,7 +112,7 @@ ck, ssk, spk = generate_sender_keys()
 print(f"Clave de cifrado (CK) de Javi: {ck.hex()}")
 
 # Derivar clave maestra (MK)
-mk = derive_message_key(ck)
+mk = derive_keys(ck)
 print(f"Clave maestra (MK) derivada: {mk.hex()}")
 
 # Mensaje a cifrar
